@@ -4,6 +4,8 @@ It was written on 10.8 and has been tested to work with 10.7 and above.
 
 The intention is for the tech doing the migration to plug the old computer into the new computer using target disk mode, login as a local admin (a user not being migrated) and then running this tool.
 
+Once I am done making edits to the .scpt file I then export it as an applications and distribute it as needed.
+
 Documentation I wrote up about this application:
 
 ---
