@@ -6,7 +6,7 @@ The intention is for the tech doing the migration to plug the old computer into 
 
 Once I am done making edits to the .scpt file I then export it as an applications and distribute it as needed.
 
-Documentation I wrote up about this application:
+Documentation I wrote up about this application
 
 ---
 
