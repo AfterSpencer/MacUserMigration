@@ -1,0 +1,105 @@
+with timeout of (240 * 60) seconds
+	tell application "Finder"
+		display dialog "Please choose folder to copy data from." buttons {"OK"} default button "OK"
+		set sourceFolder to choose folder
+		display dialog "Please enter the AD Username for the user:" default answer ""
+		set userName to (text returned of result)
+		set targetFolderP to "/Users/" & userName
+		set sourceFolderP to POSIX path of sourceFolder
+		set validUser to (do shell script "/usr/bin/id " & userName & " 2>/dev/null| awk '{print $1}' | cut -c1-3")
+		set currentUser to (do shell script "/usr/bin/id 2>/dev/null| awk '{print $1}' ")
+		set validUserLng to (do shell script "/usr/bin/id " & userName & " 2>/dev/null| awk '{print $1}'")
+		set sharedPathP to "/Users/Shared/"
+		set sharedPath to (POSIX file sharedPathP) as string
+		set homeExists to (do shell script "if [ -d /Users/" & userName & " ]; then echo yes; else echo no; fi")
+		set myName to do shell script ("whoami")
+		
+		if currentUser = validUserLng then
+			
+			display dialog "It looks like you are logged in as " & userName & "
+Please login as another user and try again." buttons {"OK"} default button "OK"
+			return
+		else
+			
+			if homeExists = "yes" then
+				display dialog "It looks like /Users/" & userName & " already exists.
+Please rename the folder and try again 
+or try another user." buttons {"OK"} default button "OK"
+				return
+			else
+				if validUser = "uid" then
+					
+					display dialog "Terminal will open. If prompted please type the password for " & myName & "" buttons {"OK"} default button "OK"
+					
+					tell application "Terminal"
+						activate
+						do script "sudo whoami && echo \"Success\" && sleep 5 && killall Terminal"
+					end tell
+					
+					repeat
+						tell application "System Events"
+							if "Terminal" is not in (name of application processes) then exit repeat
+						end tell
+						delay 5
+					end repeat
+					
+					
+					
+					display dialog "The contents of " & sourceFolderP & "
+will be copied to " & targetFolderP & "
+
+Permissions will be set for " & targetFolderP & " 
+to " & userName & ":staff 
+
+And
+
+" & userName & " will be added to the administrators group.
+		
+Does this look correct?" buttons {"Yes", "No"} default button "No"
+					set buttonReturned to button returned of the result
+					
+					if buttonReturned = "Yes" then
+						
+						display dialog "The next steps may take a while. Please wait until you see a migration complete message" buttons {"OK"} default button "OK"
+						do shell script ("if [ -d " & sourceFolderP & "/Library ]; then /usr/bin/sudo /usr/bin/chflags nohidden " & sourceFolderP & "/Library; fi")
+						tell application "Terminal"
+							activate
+							do script "sudo rsync -vru --exclude='.Trash' " & sourceFolderP & " " & targetFolderP & " && echo \"rsync complete\" && sleep 10 && killall Terminal"
+						end tell
+						
+						repeat
+							tell application "System Events"
+								if "Terminal" is not in (name of application processes) then exit repeat
+							end tell
+							delay 5
+						end repeat
+						do shell script ("/usr/sbin/chown -R " & userName & ":staff " & targetFolderP & "; /usr/sbin/dseditgroup -o edit -a " & userName & " -t user admin") with administrator privileges
+						set libraryExists to (do shell script "if [ -d /Users/" & userName & "/Library ]; then echo yes; else echo no; fi")
+						if libraryExists = "no" then
+							display dialog "Library does not seem to have been copied. 
+Please check and copy it manually if needed." buttons {"OK"} default button "OK"
+						end if
+						
+					else
+						
+						display dialog "Canceled migration" buttons {"OK"} default button "OK"
+						
+						return
+						
+						
+					end if
+					
+				else
+					
+					display dialog "Username doesn't seem correct
+		
+Please check name and/or AD Binding and try again" buttons {"OK"} default button "OK"
+					return
+					
+				end if
+				
+				display dialog "User migration complete!" buttons {"OK"} default button "OK"
+			end if
+		end if
+	end tell
+end timeout
